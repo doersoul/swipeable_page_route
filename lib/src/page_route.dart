@@ -1,22 +1,24 @@
 import 'dart:math' as math;
 import 'dart:ui' show lerpDouble;
 
-import 'package:black_hole_flutter/black_hole_flutter.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:swipeable_page_route/src/scroll_page_gesture_recognizer.dart';
+import 'package:swipeable_page_route/src/scroll_page_listener.dart';
+import 'package:swipeable_page_route/src/scroll_page_mixin.dart';
 
 /// Used by [PageTransitionsTheme] to define a horizontal [MaterialPageRoute]
-/// page transition animation that matches [SwipeablePageRoute].
+/// page transition animation that matches [SwipePageRoute].
 ///
-/// See [SwipeablePageRoute] for documentation of all properties.
+/// See [SwipePageRoute] for documentation of all properties.
 ///
-/// ⚠️ [SwipeablePageTransitionsBuilder] *must* be set for [TargetPlatform.iOS].
+/// ⚠️ [SwipePageTransitionsBuilder] *must* be set for [TargetPlatform.iOS].
 /// For all other platforms, you can decide whether you want to use it. This is
 /// because [PageTransitionsTheme] uses the builder for iOS whenever a pop
 /// gesture is in progress.
-class SwipeablePageTransitionsBuilder extends PageTransitionsBuilder {
-  const SwipeablePageTransitionsBuilder({
+class SwipePageTransitionsBuilder extends PageTransitionsBuilder {
+  const SwipePageTransitionsBuilder({
     this.canOnlySwipeFromEdge = false,
     this.backGestureDetectionWidth = kMinInteractiveDimension,
     this.backGestureDetectionStartOffset = 0,
@@ -26,7 +28,7 @@ class SwipeablePageTransitionsBuilder extends PageTransitionsBuilder {
   final bool canOnlySwipeFromEdge;
   final double backGestureDetectionWidth;
   final double backGestureDetectionStartOffset;
-  final SwipeableTransitionBuilder? transitionBuilder;
+  final SwipeTransitionBuilder? transitionBuilder;
 
   @override
   Widget buildTransitions<T>(
@@ -36,7 +38,7 @@ class SwipeablePageTransitionsBuilder extends PageTransitionsBuilder {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
-    return SwipeablePageRoute.buildPageTransitions<T>(
+    return SwipePageRoute.buildPageTransitions<T>(
       route,
       context,
       animation,
@@ -55,16 +57,16 @@ class SwipeablePageTransitionsBuilder extends PageTransitionsBuilder {
 ///
 /// See also:
 ///
-///  * [SwipeablePage], for a [Page] version of this class.
-class SwipeablePageRoute<T> extends CupertinoPageRoute<T> {
-  SwipeablePageRoute({
+///  * [SwipePage], for a [Page] version of this class.
+class SwipePageRoute<T> extends CupertinoPageRoute<T> {
+  SwipePageRoute({
     this.canSwipe = true,
     this.canOnlySwipeFromEdge = false,
     this.backGestureDetectionWidth = kMinInteractiveDimension,
     this.backGestureDetectionStartOffset = 0.0,
     Duration? transitionDuration,
     Duration? reverseTransitionDuration,
-    SwipeableTransitionBuilder? transitionBuilder,
+    SwipeTransitionBuilder? transitionBuilder,
     required super.builder,
     super.title,
     super.settings,
@@ -77,14 +79,14 @@ class SwipeablePageRoute<T> extends CupertinoPageRoute<T> {
         transitionBuilder =
             transitionBuilder ?? _defaultTransitionBuilder(fullscreenDialog);
 
-  /// {@template swipeable_page_route.SwipeablePageRoute.canSwipe}
+  /// {@template swipeable_page_route.SwipePageRoute.canSwipe}
   /// Whether the user can swipe to navigate back.
   ///
   /// Set this to `false` to disable swiping completely.
   /// {@endtemplate}
   bool canSwipe;
 
-  /// {@template swipeable_page_route.SwipeablePageRoute.canOnlySwipeFromEdge}
+  /// {@template swipeable_page_route.SwipePageRoute.canOnlySwipeFromEdge}
   /// Whether only back gestures close to the left (LTR) or right (RTL) screen
   /// edge are counted.
   ///
@@ -96,8 +98,7 @@ class SwipeablePageRoute<T> extends CupertinoPageRoute<T> {
   /// {@endtemplate}
   bool canOnlySwipeFromEdge;
 
-  // ignore: lines_longer_than_80_chars
-  /// {@template swipeable_page_route.SwipeablePageRoute.backGestureDetectionWidth}
+  /// {@template swipeable_page_route.SwipePageRoute.backGestureDetectionWidth}
   /// If [canOnlySwipeFromEdge] is set to `true`, this value controls the width
   /// of the gesture detection area.
   ///
@@ -105,8 +106,7 @@ class SwipeablePageRoute<T> extends CupertinoPageRoute<T> {
   /// {@endtemplate}
   double backGestureDetectionWidth;
 
-  // ignore: lines_longer_than_80_chars
-  /// {@template swipeable_page_route.SwipeablePageRoute.backGestureDetectionStartOffset}
+  /// {@template swipeable_page_route.SwipePageRoute.backGestureDetectionStartOffset}
   /// If [canOnlySwipeFromEdge] is set to `true`, this value controls how far
   /// away from the left (LTR) or right (RTL) screen edge a gesture must start
   /// to be recognized for back navigation.
@@ -115,17 +115,19 @@ class SwipeablePageRoute<T> extends CupertinoPageRoute<T> {
 
   /// An optional override for the [transitionDuration].
   final Duration? _transitionDuration;
+
   @override
   Duration get transitionDuration =>
       _transitionDuration ?? super.transitionDuration;
 
   /// An optional override for the [reverseTransitionDuration].
   final Duration? _reverseTransitionDuration;
+
   @override
   Duration get reverseTransitionDuration =>
       _reverseTransitionDuration ?? super.reverseTransitionDuration;
 
-  /// {@template swipeable_page_route.SwipeablePageRoute.transitionBuilder}
+  /// {@template swipeable_page_route.SwipePageRoute.transitionBuilder}
   /// Custom builder to wrap the child widget.
   ///
   /// By default, this wraps the child in a [CupertinoPageTransition], or, if
@@ -134,9 +136,9 @@ class SwipeablePageRoute<T> extends CupertinoPageRoute<T> {
   /// You can override this to, e.g., customize the position or shadow
   /// animations.
   /// {@endtemplate}
-  final SwipeableTransitionBuilder transitionBuilder;
+  final SwipeTransitionBuilder transitionBuilder;
 
-  static SwipeableTransitionBuilder _defaultTransitionBuilder(
+  static SwipeTransitionBuilder _defaultTransitionBuilder(
     bool fullscreenDialog,
   ) {
     if (fullscreenDialog) {
@@ -162,15 +164,21 @@ class SwipeablePageRoute<T> extends CupertinoPageRoute<T> {
 
   @override
   bool get popGestureEnabled => _isPopGestureEnabled(this, canSwipe);
+
   // Copied and modified from `CupertinoRouteTransitionMixin`
   static bool _isPopGestureEnabled<T>(PageRoute<T> route, bool canSwipe) {
     // If there's nothing to go back to, then obviously we don't support
     // the back gesture.
-    if (route.isFirst) return false;
+    if (route.isFirst) {
+      return false;
+    }
+
     // If the route wouldn't actually pop if we popped it, then the gesture
-    // would be really confusing (or would skip internal routes), so disallow
-    // it.
-    if (route.willHandlePopInternally) return false;
+    // would be really confusing (or would skip internal routes), so disallow it.
+    if (route.willHandlePopInternally) {
+      return false;
+    }
+
     // If attempts to dismiss this route might be vetoed such as in a page
     // with forms, then do not allow the user to dismiss the route with a swipe.
     // ignore: deprecated_member_use
@@ -178,23 +186,33 @@ class SwipeablePageRoute<T> extends CupertinoPageRoute<T> {
         route.popDisposition == RoutePopDisposition.doNotPop) {
       return false;
     }
+
     // Fullscreen dialogs aren't dismissible by back swipe.
-    if (route.fullscreenDialog) return false;
+    if (route.fullscreenDialog) {
+      return false;
+    }
+
     // If we're in an animation already, we cannot be manually swiped.
-    if (route.animation!.status != AnimationStatus.completed) return false;
+    if (route.animation!.status != AnimationStatus.completed) {
+      return false;
+    }
+
     // If we're being popped into, we also cannot be swiped until the pop above
     // it completes. This translates to our secondary animation being
     // dismissed.
     if (route.secondaryAnimation!.status != AnimationStatus.dismissed) {
       return false;
     }
+
     // If we're in a gesture already, we cannot start another.
     if (route.popGestureInProgress) {
       return false;
     }
 
     // Added
-    if (!canSwipe) return false;
+    if (!canSwipe) {
+      return false;
+    }
 
     // Looks like a back gesture would be welcome!
     return true;
@@ -245,16 +263,20 @@ class SwipeablePageRoute<T> extends CupertinoPageRoute<T> {
         _defaultBackGestureDetectionWidth,
     ValueGetter<double> backGestureDetectionStartOffset =
         _defaultBackGestureDetectionStartOffset,
-    SwipeableTransitionBuilder? transitionBuilder,
+    SwipeTransitionBuilder? transitionBuilder,
   }) {
     final Widget wrappedChild;
-    if (route.fullscreenDialog) {
+
+    // todo check, update by doersoul@126.com
+    if (route.fullscreenDialog || route.isFirst) {
       wrappedChild = child;
     } else {
       wrappedChild = _FancyBackGestureDetector<T>(
         enabledCallback: () => _isPopGestureEnabled(route, canSwipe()),
         onStartPopGesture: () {
-          assert(_isPopGestureEnabled(route, canSwipe()));
+          // todo check, update by doersoul@126.com
+          // assert(_isPopGestureEnabled(route, canSwipe()));
+
           return _startPopGesture(route);
         },
         canOnlySwipeFromEdge: canOnlySwipeFromEdge,
@@ -265,6 +287,7 @@ class SwipeablePageRoute<T> extends CupertinoPageRoute<T> {
     }
 
     transitionBuilder ??= _defaultTransitionBuilder(route.fullscreenDialog);
+
     return transitionBuilder(
       context,
       animation,
@@ -275,12 +298,15 @@ class SwipeablePageRoute<T> extends CupertinoPageRoute<T> {
   }
 
   static bool _defaultCanSwipe() => true;
+
   static bool _defaultCanOnlySwipeFromEdge() => false;
+
   static double _defaultBackGestureDetectionWidth() => kMinInteractiveDimension;
+
   static double _defaultBackGestureDetectionStartOffset() => 0;
 }
 
-typedef SwipeableTransitionBuilder = Widget Function(
+typedef SwipeTransitionBuilder = Widget Function(
   BuildContext context,
   Animation<double> animation,
   Animation<double> secondaryAnimation,
@@ -294,16 +320,16 @@ typedef SwipeableTransitionBuilder = Widget Function(
 ///
 /// See also:
 ///
-///  * [SwipeablePageRoute], for a [PageRoute] version of this class.
-class SwipeablePage<T> extends Page<T> {
-  SwipeablePage({
+///  * [SwipePageRoute], for a [PageRoute] version of this class.
+class SwipePage<T> extends Page<T> {
+  SwipePage({
     this.canSwipe = true,
     this.canOnlySwipeFromEdge = false,
     this.backGestureDetectionWidth = kMinInteractiveDimension,
     this.backGestureDetectionStartOffset = 0.0,
     this.transitionDuration,
     this.reverseTransitionDuration,
-    SwipeableTransitionBuilder? transitionBuilder,
+    SwipeTransitionBuilder? transitionBuilder,
     this.title,
     super.key,
     super.name,
@@ -314,26 +340,25 @@ class SwipeablePage<T> extends Page<T> {
     this.allowSnapshotting = true,
     required this.builder,
   }) : transitionBuilder = transitionBuilder ??
-            SwipeablePageRoute._defaultTransitionBuilder(fullscreenDialog);
+            SwipePageRoute._defaultTransitionBuilder(fullscreenDialog);
 
-  /// {@macro swipeable_page_route.SwipeablePageRoute.canSwipe}
+  /// {@macro swipeable_page_route.SwipePageRoute.canSwipe}
   final bool canSwipe;
 
-  /// {@macro swipeable_page_route.SwipeablePageRoute.canOnlySwipeFromEdge}
+  /// {@macro swipeable_page_route.SwipePageRoute.canOnlySwipeFromEdge}
   final bool canOnlySwipeFromEdge;
 
-  /// {@macro swipeable_page_route.SwipeablePageRoute.backGestureDetectionWidth}
+  /// {@macro swipeable_page_route.SwipePageRoute.backGestureDetectionWidth}
   final double backGestureDetectionWidth;
 
-  // ignore: lines_longer_than_80_chars
-  /// {@macro swipeable_page_route.SwipeablePageRoute.backGestureDetectionStartOffset}
+  /// {@macro swipeable_page_route.SwipePageRoute.backGestureDetectionStartOffset}
   final double backGestureDetectionStartOffset;
 
   final Duration? transitionDuration;
   final Duration? reverseTransitionDuration;
 
-  /// {@macro swipeable_page_route.SwipeablePageRoute.transitionBuilder}
-  final SwipeableTransitionBuilder transitionBuilder;
+  /// {@macro swipeable_page_route.SwipePageRoute.transitionBuilder}
+  final SwipeTransitionBuilder transitionBuilder;
 
   /// {@macro flutter.cupertino.CupertinoRouteTransitionMixin.title}
   final String? title;
@@ -352,7 +377,7 @@ class SwipeablePage<T> extends Page<T> {
 
   @override
   Route<T> createRoute(BuildContext context) {
-    return SwipeablePageRoute(
+    return SwipePageRoute(
       canSwipe: canSwipe,
       canOnlySwipeFromEdge: canOnlySwipeFromEdge,
       backGestureDetectionWidth: backGestureDetectionWidth,
@@ -370,16 +395,15 @@ class SwipeablePage<T> extends Page<T> {
   }
 }
 
-extension BuildContextSwipeablePageRoute on BuildContext {
-  SwipeablePageRoute<T>? getSwipeablePageRoute<T>() {
-    final route = getModalRoute<T>();
-    return route is SwipeablePageRoute<T> ? route : null;
+extension BuildContextSwipePageRoute on BuildContext {
+  SwipePageRoute<T>? getSwipePageRoute<T>() {
+    final route = ModalRoute.of(this);
+    return route is SwipePageRoute<T> ? route : null;
   }
 }
 
 // Mostly copies and modified variations of the private widgets related to
 // [CupertinoPageRoute].
-
 const double _kMinFlingVelocity = 1; // Screen widths per second.
 
 // An eyeballed value for the maximum time it takes for a page to animate
@@ -416,77 +440,59 @@ class _FancyBackGestureDetector<T> extends StatefulWidget {
 }
 
 class _FancyBackGestureDetectorState<T>
-    extends State<_FancyBackGestureDetector<T>> {
+    extends State<_FancyBackGestureDetector<T>> with ScrollPageMixin {
   _CupertinoBackGestureController<T>? _backGestureController;
-  @override
-  Widget build(BuildContext context) {
-    assert(debugCheckHasDirectionality(context));
 
-    final gestureDetector = RawGestureDetector(
-      behavior: HitTestBehavior.translucent,
-      gestures: {
-        _DirectionDependentDragGestureRecognizer:
-            GestureRecognizerFactoryWithHandlers<
-                _DirectionDependentDragGestureRecognizer>(
-          _gestureRecognizerConstructor,
-          (instance) => instance
-            ..onStart = _handleDragStart
-            ..onUpdate = _handleDragUpdate
-            ..onEnd = _handleDragEnd
-            ..onCancel = _handleDragCancel,
-        ),
-      },
-    );
+  void _handleDragStart([DragStartDetails? details]) {
+    if (!mounted) {
+      return;
+    }
 
-    return Stack(
-      fit: StackFit.passthrough,
-      children: [widget.child, Positioned.fill(child: gestureDetector)],
-    );
-  }
-
-  _DirectionDependentDragGestureRecognizer _gestureRecognizerConstructor() {
-    final directionality = context.directionality;
-    return _DirectionDependentDragGestureRecognizer(
-      debugOwner: this,
-      directionality: directionality,
-      checkStartedCallback: () => _backGestureController != null,
-      enabledCallback: widget.enabledCallback,
-      detectionArea: () => widget.canOnlySwipeFromEdge()
-          ? (
-              startOffset: widget.backGestureDetectionStartOffset(),
-              width: _dragAreaWidth(context),
-            )
-          : null,
-    );
-  }
-
-  void _handleDragStart(DragStartDetails _) {
-    assert(mounted);
-    assert(_backGestureController == null);
     _backGestureController = widget.onStartPopGesture();
+
+    dragUnderway = true;
   }
 
   void _handleDragUpdate(DragUpdateDetails details) {
-    assert(mounted);
-    assert(_backGestureController != null);
+    if (!mounted ||
+        !isActive ||
+        _backGestureController == null ||
+        _backGestureController!.controller.isAnimating) {
+      return;
+    }
+
     _backGestureController!.dragUpdate(
       _convertToLogical(details.primaryDelta! / context.size!.width),
     );
   }
 
   void _handleDragEnd(DragEndDetails details) {
-    assert(mounted);
-    assert(_backGestureController != null);
+    if (!mounted ||
+        !isActive ||
+        _backGestureController == null ||
+        _backGestureController!.controller.isAnimating) {
+      return;
+    }
+
+    dragUnderway = false;
+
     _backGestureController!.dragEnd(
       _convertToLogical(
         details.velocity.pixelsPerSecond.dx / context.size!.width,
       ),
     );
-    _backGestureController = null;
   }
 
   void _handleDragCancel() {
-    assert(mounted);
+    if (!mounted ||
+        !isActive ||
+        _backGestureController == null ||
+        _backGestureController!.controller.isAnimating) {
+      return;
+    }
+
+    dragUnderway = false;
+
     // This can be called even if start is not called, paired with the "down"
     // event that we don't consider here.
     _backGestureController?.dragEnd(0);
@@ -494,20 +500,70 @@ class _FancyBackGestureDetectorState<T>
   }
 
   double _convertToLogical(double value) {
-    return switch (context.directionality) {
+    return switch (Directionality.of(context)) {
       TextDirection.rtl => -value,
       TextDirection.ltr => value,
     };
   }
 
-  double _dragAreaWidth(BuildContext context) {
+  double _dragAreaWidth(BuildContext context, TextDirection textDirection) {
+    final EdgeInsets padding = MediaQuery.paddingOf(context);
+
     // For devices with notches, the drag area needs to be larger on the side
     // that has the notch.
-    final dragAreaWidth = switch (context.directionality) {
-      TextDirection.ltr => context.mediaQuery.padding.left,
-      TextDirection.rtl => context.mediaQuery.padding.right,
+    final dragAreaWidth = switch (Directionality.of(context)) {
+      TextDirection.ltr => padding.left,
+      TextDirection.rtl => padding.right,
     };
+
     return math.max(dragAreaWidth, widget.backGestureDetectionWidth());
+  }
+
+  ScrollPageGestureRecognizer _gestureRecognizerConstructor() {
+    final TextDirection textDirection = Directionality.of(context);
+
+    return ScrollPageGestureRecognizer(
+      debugOwner: this,
+      directionality: textDirection,
+      checkStartedCallback: () => _backGestureController != null || isActive,
+      enabledCallback: widget.enabledCallback,
+      detectionArea: () => widget.canOnlySwipeFromEdge()
+          ? (
+              startOffset: widget.backGestureDetectionStartOffset(),
+              width: _dragAreaWidth(context, textDirection),
+            )
+          : null,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    assert(debugCheckHasDirectionality(context));
+
+    return RawGestureDetector(
+      behavior: HitTestBehavior.opaque,
+      gestures: {
+        ScrollPageGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<ScrollPageGestureRecognizer>(
+          _gestureRecognizerConstructor,
+          (instance) => instance
+            ..dragStartBehavior = DragStartBehavior.down
+            ..onStart = _handleDragStart
+            ..onUpdate = _handleDragUpdate
+            ..onEnd = _handleDragEnd
+            ..onCancel = _handleDragCancel
+            ..gestureSettings = MediaQuery.maybeOf(context)?.gestureSettings,
+        ),
+      },
+      child: ScrollPageListener(
+        parentState: this,
+        onStart: (_) => _handleDragStart(),
+        onUpdate: _handleDragUpdate,
+        onEnd: _handleDragEnd,
+        child: widget.child,
+        // child: Container(color: colorRed),
+      ),
+    );
   }
 }
 
@@ -563,6 +619,7 @@ class _CupertinoBackGestureController<T> {
             .floor(),
         _kMaxPageBackAnimationTime,
       );
+
       controller.animateTo(
         1,
         duration: Duration(milliseconds: droppedPageForwardAnimationTime),
@@ -595,64 +652,15 @@ class _CupertinoBackGestureController<T> {
       // curve of the page transition mid-flight since CupertinoPageTransition
       // depends on userGestureInProgress.
       late AnimationStatusListener animationStatusCallback;
+
       animationStatusCallback = (status) {
         navigator.didStopUserGesture();
         controller.removeStatusListener(animationStatusCallback);
       };
+
       controller.addStatusListener(animationStatusCallback);
     } else {
       navigator.didStopUserGesture();
     }
   }
 }
-
-class _DirectionDependentDragGestureRecognizer
-    extends HorizontalDragGestureRecognizer {
-  _DirectionDependentDragGestureRecognizer({
-    required this.directionality,
-    required this.enabledCallback,
-    required this.detectionArea,
-    required this.checkStartedCallback,
-    super.debugOwner,
-  });
-
-  final TextDirection directionality;
-  final ValueGetter<bool> enabledCallback;
-  final ValueGetter<_DetectionArea?> detectionArea;
-  final ValueGetter<bool> checkStartedCallback;
-
-  @override
-  void handleEvent(PointerEvent event) {
-    if (_shouldHandle(event)) {
-      super.handleEvent(event);
-    } else {
-      stopTrackingPointer(event.pointer);
-    }
-  }
-
-  bool _shouldHandle(PointerEvent event) {
-    if (checkStartedCallback()) return true;
-    if (!enabledCallback()) return false;
-
-    final isCorrectDirection = switch ((directionality, event.delta.dx)) {
-      (TextDirection.ltr, > 0) => true,
-      (TextDirection.rtl, < 0) => true,
-      (_, 0) => true,
-      _ => false,
-    };
-    if (!isCorrectDirection) return false;
-
-    final detectionArea = this.detectionArea();
-    final x = event.localPosition.dx;
-    if (detectionArea != null &&
-        event is PointerDownEvent &&
-        (x < detectionArea.startOffset ||
-            x > detectionArea.startOffset + detectionArea.width)) {
-      return false;
-    }
-
-    return true;
-  }
-}
-
-typedef _DetectionArea = ({double startOffset, double width});
