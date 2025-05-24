@@ -1,6 +1,6 @@
 export 'src/page_route.dart'
     show
-        BuildContextSwipeablePageRoute,
-        SwipeablePage,
-        SwipeablePageRoute,
-        SwipeablePageTransitionsBuilder;
+        BuildContextSwipePageRoute,
+        SwipePage,
+        SwipePageRoute,
+        SwipePageTransitionsBuilder;
