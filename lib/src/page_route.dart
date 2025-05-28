@@ -443,6 +443,9 @@ class _FancyBackGestureDetectorState<T>
     extends State<_FancyBackGestureDetector<T>> with ScrollPageMixin {
   _CupertinoBackGestureController<T>? _backGestureController;
 
+  double _screenWidth = 0.0;
+  double _dragDistance = 0.0;
+
   void _handleDragStart([DragStartDetails? details]) {
     if (!mounted) {
       return;
@@ -451,6 +454,9 @@ class _FancyBackGestureDetectorState<T>
     _backGestureController = widget.onStartPopGesture();
 
     dragUnderway = true;
+
+    _screenWidth = context.size?.width ?? MediaQuery.sizeOf(context).width;
+    _dragDistance = 0.0;
   }
 
   void _handleDragUpdate(DragUpdateDetails details) {
@@ -461,8 +467,15 @@ class _FancyBackGestureDetectorState<T>
       return;
     }
 
+    final double primaryDelta = details.primaryDelta ?? 0.0;
+
+    _dragDistance = (_dragDistance + primaryDelta.abs()).clamp(0, _screenWidth);
+
+    final double dragRate = _dragDistance / _screenWidth;
+    final double friction = (dragRate * 3).clamp(0, 1);
+
     _backGestureController!.dragUpdate(
-      _convertToLogical((details.primaryDelta! * 0.6) / context.size!.width),
+      _convertToLogical((primaryDelta * friction) / _screenWidth),
     );
   }
 
