@@ -462,7 +462,7 @@ class _FancyBackGestureDetectorState<T>
     }
 
     _backGestureController!.dragUpdate(
-      _convertToLogical(details.primaryDelta! / context.size!.width),
+      _convertToLogical((details.primaryDelta! * 0.6) / context.size!.width),
     );
   }
 
