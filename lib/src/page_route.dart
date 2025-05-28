@@ -444,7 +444,7 @@ class _FancyBackGestureDetectorState<T>
   _CupertinoBackGestureController<T>? _backGestureController;
 
   double _screenWidth = 0.0;
-  double _dragDistance = 0.0;
+  // double _dragDistance = 0.0;
 
   void _handleDragStart([DragStartDetails? details]) {
     if (!mounted) {
@@ -456,7 +456,7 @@ class _FancyBackGestureDetectorState<T>
     dragUnderway = true;
 
     _screenWidth = context.size?.width ?? MediaQuery.sizeOf(context).width;
-    _dragDistance = 0.0;
+    // _dragDistance = 0.0;
   }
 
   void _handleDragUpdate(DragUpdateDetails details) {
@@ -469,13 +469,13 @@ class _FancyBackGestureDetectorState<T>
 
     final double primaryDelta = details.primaryDelta ?? 0.0;
 
-    _dragDistance = (_dragDistance + primaryDelta.abs()).clamp(0, _screenWidth);
-
-    final double dragRate = _dragDistance / _screenWidth;
-    final double friction = (dragRate * 3).clamp(0, 1);
+    // _dragDistance = (_dragDistance + primaryDelta.abs()).clamp(0, _screenWidth);
+    //
+    // final double dragRate = _dragDistance / _screenWidth;
+    // final double friction = (dragRate * 3).clamp(0, 1);
 
     _backGestureController!.dragUpdate(
-      _convertToLogical((primaryDelta * friction) / _screenWidth),
+      _convertToLogical(primaryDelta / _screenWidth),
     );
   }
 
